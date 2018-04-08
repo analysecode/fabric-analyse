@@ -9,8 +9,11 @@ SPDX-License-Identifier: Apache-2.0
 // function should be included in this package.
 package main
 
+//common目录提供了orderer所需要的一些公共的方法
 import "github.com/hyperledger/fabric/orderer/common/server"
 
+
 func main() {
+	//方法位于orderer/common/server/main.go
 	server.Main()
 }

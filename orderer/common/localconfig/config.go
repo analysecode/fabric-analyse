@@ -253,6 +253,9 @@ var defaults = TopLevel{
 // Load parses the orderer.yaml file and environment, producing a struct suitable for config use, returning error on failure
 func Load() (*TopLevel, error) {
 	config := viper.New()
+	//configName = orderer
+	//位置:fabric-analyse/core/config/config.go
+	//如果设置了FABRIC_CFG_PATH,会从这个路径下寻找orderer.yaml如果不存在会在$GOPATH/src/github.com/hyperledger/fabric/sampleconfig下寻找
 	cf.InitViper(config, configName)
 
 	// for environment variables

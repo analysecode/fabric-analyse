@@ -48,7 +48,8 @@ func LoadLocalMsp(dir string, bccspConfig *factory.FactoryOpts, mspID string) er
 	if mspID == "" {
 		return errors.New("the local MSP must have an ID")
 	}
-
+	//获取msp配置文件
+	//GetLocalMspConfig 方法位于:fabric-analyse/msp/configbuilder.go
 	conf, err := msp.GetLocalMspConfig(dir, bccspConfig, mspID)
 	if err != nil {
 		return err
@@ -155,16 +156,19 @@ func GetLocalMSP() msp.MSP {
 	var lclMsp msp.MSP
 	var created bool = false
 	{
-		// determine the type of MSP (by default, we'll use bccspMSP)
+		//默认会使用bccspMSP
 		mspType := viper.GetString("peer.localMspType")
 		if mspType == "" {
 			mspType = msp.ProviderTypeToString(msp.FABRIC)
 		}
 
-		// based on the MSP type, generate the new opts
+		//目前msp基础类型为FABRIC和IDEMIX,可以在这两种类型基础上添加新类型
+		//这两种类型定义在msp/msp.go中,其中msp.FABRIC = bccsp 和 msp.IDEMIX = idemix
+		
 		var newOpts msp.NewOpts
 		switch mspType {
 		case msp.ProviderTypeToString(msp.FABRIC):
+			//结构体位于:msp/factory.go
 			newOpts = &msp.BCCSPNewOpts{NewBaseOpts: msp.NewBaseOpts{Version: msp.MSPv1_0}}
 		case msp.ProviderTypeToString(msp.IDEMIX):
 			newOpts = &msp.IdemixNewOpts{msp.NewBaseOpts{Version: msp.MSPv1_1}}

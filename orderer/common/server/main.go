@@ -40,7 +40,9 @@ import (
 	mspmgmt "github.com/hyperledger/fabric/msp/mgmt"
 	"github.com/hyperledger/fabric/orderer/common/performance"
 	"github.com/op/go-logging"
-	"gopkg.in/alecthomas/kingpin.v2"
+
+	//解析命令行参数的工具,代码地址:https://github.com/alecthomas/kingpin/tree/v2.2.6
+	"gopkg.in/alecthomas/kingpin.v2" 
 )
 
 const pkgLogID = "orderer/common/server"
@@ -51,7 +53,12 @@ func init() {
 	logger = flogging.MustGetLogger(pkgLogID)
 }
 
-//command line flags
+/*********************************************************************
+ *                      定义orderer命令                                * 
+ * orderer start 启动一个orderer节点                                    *
+ * orderer version 查看版本信息(包括fabric版本,go版本,操作系统信息,实验特性)     *
+ * orderer benchmark 以测试模式启动orderer节点                           *
+**********************************************************************/
 var (
 	app = kingpin.New("orderer", "Hyperledger Fabric orderer node")
 
@@ -60,22 +67,27 @@ var (
 	benchmark = app.Command("benchmark", "Run orderer in benchmark mode")
 )
 
-// Main is the entry point of orderer process
+//主函数
 func Main() {
+	//解析命令行参数
 	fullCmd := kingpin.MustParse(app.Parse(os.Args[1:]))
 
-	// "version" command
+	//如果执行orderer version 则返回版本信息
 	if fullCmd == version.FullCommand() {
 		fmt.Println(metadata.GetVersionInfo())
 		return
 	}
 
+	//代码地址:common/localconfig/config.go
+	//主要是加载orderer.yaml配置文件	
 	conf, err := config.Load()
 	if err != nil {
 		logger.Error("failed to parse config: ", err)
 		os.Exit(1)
 	}
+	//设置日志格式和级别
 	initializeLoggingLevel(conf)
+	//设置msp
 	initializeLocalMsp(conf)
 
 	prettyPrintStruct(conf)
@@ -119,9 +131,11 @@ func Start(cmd string, conf *config.TopLevel) {
 	}
 }
 
-// Set the logging level
+// 设置日志级别
 func initializeLoggingLevel(conf *config.TopLevel) {
+	//初始化日志格式为defaultFormat,具体格式查看:fabric-analyse/common/flogging/logging.go 第31行
 	flogging.InitBackend(flogging.SetFormat(conf.General.LogFormat), os.Stderr)
+	//日志级别为logging.INFO
 	flogging.InitFromSpec(conf.General.LogLevel)
 }
 
@@ -238,7 +252,7 @@ func initializeGrpcServer(conf *config.TopLevel, serverConfig comm.ServerConfig)
 }
 
 func initializeLocalMsp(conf *config.TopLevel) {
-	// Load local MSP
+	// 加载本地msp配置文件
 	err := mspmgmt.LoadLocalMsp(conf.General.LocalMSPDir, conf.General.BCCSP, conf.General.LocalMSPID)
 	if err != nil { // Handle errors reading the config file
 		logger.Fatal("Failed to initialize local MSP:", err)
