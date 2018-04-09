@@ -89,7 +89,7 @@ func Main() {
 	initializeLoggingLevel(conf)
 	//设置msp
 	initializeLocalMsp(conf)
-
+	//打印orderer配置结构体	
 	prettyPrintStruct(conf)
 	Start(fullCmd, conf)
 }
@@ -252,7 +252,11 @@ func initializeGrpcServer(conf *config.TopLevel, serverConfig comm.ServerConfig)
 }
 
 func initializeLocalMsp(conf *config.TopLevel) {
-	// 加载本地msp配置文件
+	//conf引用的是orderer/common/localconfig/config.go 行号:189 定义了默认值
+	//conf.General.LocalMSPDir = msp
+	//conf.General.BCCSP 从206行看出使用了默认选项bccsp.GetDefaultOpts(),bccsp引用自fabric-analyse/bccsp/factory/opts.go
+	//使用的是SHA256算法
+	//conf.General.LocalMSPID = DEFAULT
 	err := mspmgmt.LoadLocalMsp(conf.General.LocalMSPDir, conf.General.BCCSP, conf.General.LocalMSPID)
 	if err != nil { // Handle errors reading the config file
 		logger.Fatal("Failed to initialize local MSP:", err)
