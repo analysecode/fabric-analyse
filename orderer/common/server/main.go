@@ -96,9 +96,13 @@ func Main() {
 
 // Start provides a layer of abstraction for benchmark test
 func Start(cmd string, conf *config.TopLevel) {
+
 	signer := localmsp.NewSigner()
+	//从orderer.yaml中读取配置
 	serverConfig := initializeServerConfig(conf)
+	//创建一个grpc服务
 	grpcServer := initializeGrpcServer(conf, serverConfig)
+	
 	caSupport := &comm.CASupport{
 		AppRootCAsByChain:     make(map[string][][]byte),
 		OrdererRootCAsByChain: make(map[string][][]byte),
@@ -150,27 +154,31 @@ func initializeProfilingService(conf *config.TopLevel) {
 	}
 }
 
+// conf目前读区的已经是orderer.yaml配置文件中的数据了
 func initializeServerConfig(conf *config.TopLevel) comm.ServerConfig {
 	// secure server config
 	secureOpts := &comm.SecureOptions{
-		UseTLS:            conf.General.TLS.Enabled,
-		RequireClientCert: conf.General.TLS.ClientAuthRequired,
+		UseTLS:            conf.General.TLS.Enabled, //默认没有开启tls
+		RequireClientCert: conf.General.TLS.ClientAuthRequired, //false
 	}
-	// check to see if TLS is enabled
+	//如果开启了tls
 	if secureOpts.UseTLS {
 		msg := "TLS"
-		// load crypto material from files
+		//从tls/server.crt文件中读取证书信息
 		serverCertificate, err := ioutil.ReadFile(conf.General.TLS.Certificate)
 		if err != nil {
 			logger.Fatalf("Failed to load server Certificate file '%s' (%s)",
 				conf.General.TLS.Certificate, err)
 		}
+		//从tls/server.key文件中读取私钥
 		serverKey, err := ioutil.ReadFile(conf.General.TLS.PrivateKey)
 		if err != nil {
 			logger.Fatalf("Failed to load PrivateKey file '%s' (%s)",
 				conf.General.TLS.PrivateKey, err)
 		}
 		var serverRootCAs, clientRootCAs [][]byte
+		
+		//读取根证书数据
 		for _, serverRoot := range conf.General.TLS.RootCAs {
 			root, err := ioutil.ReadFile(serverRoot)
 			if err != nil {
@@ -179,6 +187,8 @@ func initializeServerConfig(conf *config.TopLevel) comm.ServerConfig {
 			}
 			serverRootCAs = append(serverRootCAs, root)
 		}
+
+		//如果需要验证客户端,则引入客户端根证书,orderer.yaml默认并没有提供该证书
 		if secureOpts.RequireClientCert {
 			for _, clientRoot := range conf.General.TLS.ClientRootCAs {
 				root, err := ioutil.ReadFile(clientRoot)
@@ -190,12 +200,20 @@ func initializeServerConfig(conf *config.TopLevel) comm.ServerConfig {
 			}
 			msg = "mutual TLS"
 		}
+
 		secureOpts.Key = serverKey
 		secureOpts.Certificate = serverCertificate
 		secureOpts.ServerRootCAs = serverRootCAs
 		secureOpts.ClientRootCAs = clientRootCAs
 		logger.Infof("Starting orderer with %s enabled", msg)
 	}
+
+	//获取keepalive设置,位于:core/comm/config.go
+	//ClientInterval: 1 min
+	//ClientTimeout:  20 sec - gRPC default
+	//ServerInterval: 7200s - gRPC default 两次ping之间间隔7200s
+	//ServerTimeout:  20s - gRPC default 在断开链接之前服务端等待客户端响应的时间
+	//ServerMinInterval:  60s 客户端最小允许60s ping一次服务端,如果请求频繁,服务器会断开它们
 	kaOpts := comm.DefaultKeepaliveOptions()
 	// keepalive settings
 	// ServerMinInterval must be greater than 0

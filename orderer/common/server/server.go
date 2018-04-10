@@ -12,7 +12,6 @@ import (
 	"os"
 	"runtime/debug"
 	"time"
-
 	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric/common/crypto"
 	"github.com/hyperledger/fabric/common/deliver"
