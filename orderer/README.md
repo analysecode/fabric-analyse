@@ -1,5 +1,5 @@
-##ORDERER SERVICE 研究记录
-###orderer服务中涉及到的目录
+## ORDERER SERVICE 研究记录
+### orderer服务中涉及到的目录
 >common/
 >orderer/ 
 >>>>common/
