@@ -1,8 +1,8 @@
 ## ORDERER SERVICE 研究记录
 ### orderer服务中涉及到的目录
->>common
->>orderer 
->>>>common/
+  - common
+    - orderer 
+      - common/
 >>>>>>blockcutter/ 主要提供了切割账本的方法
 >>>>>>bootstrap/ 生成创世区块的一些引导性工作,比如区块的结构
 >>>>>>broadcast/ 有关广播消息的一些方法
