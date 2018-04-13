@@ -22,27 +22,29 @@ import (
 func createLedgerFactory(conf *config.TopLevel) (blockledger.Factory, string) {
 	var lf blockledger.Factory
 	var ld string
+	//判断账本类型
 	switch conf.General.LedgerType {
 	case "file":
-		ld = conf.FileLedger.Location
+		ld = conf.FileLedger.Location //账本所在目录:/var/hyperledger/production/orderer
 		if ld == "" {
 			ld = createTempDir(conf.FileLedger.Prefix)
 		}
+
 		logger.Debug("Ledger dir:", ld)
+
+		//common/ledger/blockledger/file/factory.go
 		lf = fileledger.New(ld)
-		// The file-based ledger stores the blocks for each channel
-		// in a fsblkstorage.ChainsDir sub-directory that we have
-		// to create separately. Otherwise the call to the ledger
-		// Factory's ChainIDs below will fail (dir won't exist).
+
+		//为每一个通道都会创建一个chains目录,用来存储账本文件
 		createSubDir(ld, fsblkstorage.ChainsDir)
-	case "json":
+	case "json"://以json的格式存储到账本中
 		ld = conf.FileLedger.Location
 		if ld == "" {
 			ld = createTempDir(conf.FileLedger.Prefix)
 		}
 		logger.Debug("Ledger dir:", ld)
 		lf = jsonledger.New(ld)
-	case "ram":
+	case "ram"://直接存储在内容中
 		fallthrough
 	default:
 		lf = ramledger.New(int(conf.RAMLedger.HistorySize))

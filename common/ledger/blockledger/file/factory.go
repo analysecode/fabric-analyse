@@ -25,7 +25,13 @@ import (
 )
 
 type fileLedgerFactory struct {
+	//CreateBlockStore(ledgerid string) (BlockStore, error)
+	//OpenBlockStore(ledgerid string) (BlockStore, error)
+	//Exists(ledgerid string) (bool, error)
+	//List() ([]string, error)
+	//Close()
 	blkstorageProvider blkstorage.BlockStoreProvider
+	//定义区块读写的操作 
 	ledgers            map[string]blockledger.ReadWriter
 	mutex              sync.Mutex
 }
@@ -68,11 +74,15 @@ func (flf *fileLedgerFactory) Close() {
 // New creates a new ledger factory
 func New(directory string) blockledger.Factory {
 	return &fileLedgerFactory{
+		//common/ledger/blkstorage/fsblkstorage/fs_blockstore_provider.go
 		blkstorageProvider: fsblkstorage.NewProvider(
+			//设置区块文件大小64M
 			fsblkstorage.NewConf(directory, -1),
+			//设置区块号
 			&blkstorage.IndexConfig{
 				AttrsToIndex: []blkstorage.IndexableAttr{blkstorage.IndexableAttrBlockNum}},
 		),
+		//定义read和writer
 		ledgers: make(map[string]blockledger.ReadWriter),
 	}
 }

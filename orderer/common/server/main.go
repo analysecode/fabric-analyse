@@ -118,6 +118,7 @@ func Start(cmd string, conf *config.TopLevel) {
 
 	manager := initializeMultichannelRegistrar(conf, signer, tlsCallback)
 	mutualTLS := serverConfig.SecOpts.UseTLS && serverConfig.SecOpts.RequireClientCert
+	//./server.go
 	server := NewServer(manager, signer, &conf.Debug, conf.General.Authentication.TimeWindow, mutualTLS)
 
 	switch cmd {
@@ -128,6 +129,7 @@ func Start(cmd string, conf *config.TopLevel) {
 		//注册原子广播服务
 		ab.RegisterAtomicBroadcastServer(grpcServer.Server(), server)
 		logger.Info("Beginning to serve requests")
+		//启动grpc
 		grpcServer.Start()
 	case benchmark.FullCommand(): // "benchmark" command
 		logger.Info("Starting orderer in benchmark mode")
@@ -228,28 +230,33 @@ func initializeServerConfig(conf *config.TopLevel) comm.ServerConfig {
 	return comm.ServerConfig{SecOpts: secureOpts, KaOpts: kaOpts}
 }
 
+//生成创世区块
 func initializeBootstrapChannel(conf *config.TopLevel, lf blockledger.Factory) {
 	var genesisBlock *cb.Block
 
-	// Select the bootstrapping mechanism
+	// 选择一个引导机制,默认provisional
 	switch conf.General.GenesisMethod {
 	case "provisional":
+		//conf.General.GenesisProfile SampleInsecureSolo
+		//加载configtx.yaml
 		genesisBlock = encoder.New(genesisconfig.Load(conf.General.GenesisProfile)).GenesisBlockForChannel(conf.General.SystemChannel)
 	case "file":
+		//直接读取genesisblock文件
 		genesisBlock = file.New(conf.General.GenesisFile).GenesisBlock()
 	default:
 		logger.Panic("Unknown genesis method:", conf.General.GenesisMethod)
 	}
-
+	//获取chainid
 	chainID, err := utils.GetChainIDFromBlock(genesisBlock)
 	if err != nil {
 		logger.Fatal("Failed to parse chain ID from genesis block:", err)
 	}
+	//如果存在则获取该账本,如果不存在则创建一个
 	gl, err := lf.GetOrCreate(chainID)
 	if err != nil {
 		logger.Fatal("Failed to create the system chain:", err)
 	}
-
+	//将创世区块加入到账本中
 	err = gl.Append(genesisBlock)
 	if err != nil {
 		logger.Fatal("Could not write genesis block to ledger:", err)
@@ -283,20 +290,26 @@ func initializeLocalMsp(conf *config.TopLevel) {
 	}
 }
 
+
 func initializeMultichannelRegistrar(conf *config.TopLevel, signer crypto.LocalSigner,
 	callbacks ...func(bundle *channelconfig.Bundle)) *multichannel.Registrar {
+	
+	//位置:./util.go 根据账本类型,生成账本目录,以及操作账本的方法
 	lf, _ := createLedgerFactory(conf)
-	// Are we bootstrapping?
+	// 如果还没有账本
 	if len(lf.ChainIDs()) == 0 {
+		//生成创世区块并加入到账本中
 		initializeBootstrapChannel(conf, lf)
 	} else {
 		logger.Info("Not bootstrapping because of existing chains")
 	}
 
+	//设置共识机制
 	consenters := make(map[string]consensus.Consenter)
 	consenters["solo"] = solo.New()
 	consenters["kafka"] = kafka.New(conf.Kafka)
 
+	//TODO:
 	return multichannel.NewRegistrar(lf, consenters, signer, callbacks...)
 }
 

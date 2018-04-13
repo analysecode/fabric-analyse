@@ -123,6 +123,8 @@ func getConfigTx(reader blockledger.Reader) *cb.Envelope {
 // NewRegistrar produces an instance of a *Registrar.
 func NewRegistrar(ledgerFactory blockledger.Factory, consenters map[string]consensus.Consenter,
 	signer crypto.LocalSigner, callbacks ...func(bundle *channelconfig.Bundle)) *Registrar {
+	
+
 	r := &Registrar{
 		chains:        make(map[string]*ChainSupport),
 		ledgerFactory: ledgerFactory,
@@ -131,8 +133,10 @@ func NewRegistrar(ledgerFactory blockledger.Factory, consenters map[string]conse
 		callbacks:     callbacks,
 	}
 
+	//获取所有的账本
 	existingChains := ledgerFactory.ChainIDs()
 	for _, chainID := range existingChains {
+		
 		rl, err := ledgerFactory.GetOrCreate(chainID)
 		if err != nil {
 			logger.Panicf("Ledger factory reported chainID %s but could not retrieve it: %s", chainID, err)
