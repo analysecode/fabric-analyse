@@ -29,7 +29,7 @@
   - 1. 加载启动节点所需要的配置文件,默认会使用fabric/sampleconfig/orderer.yaml(fabric使用了viper来进行配置文件的管理,加载配置最核心的代码core/config/config.go 中的InitViper方法)
 
   - 2. 加载configtx.yaml 生成创世区块,并加入到系统账本中
-  - 3. 启动一个grpc服务
+  - 3. 启动一个grpc服务
 
 ##### 二. 共识服务是如何进行共识的?
 ##### 三. orderer节点与peer节点的关系? 以及在什么情况下会进行通信?以及如何进行通信的?
