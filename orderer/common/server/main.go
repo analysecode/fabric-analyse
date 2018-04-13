@@ -123,7 +123,9 @@ func Start(cmd string, conf *config.TopLevel) {
 	switch cmd {
 	case start.FullCommand(): // "start" command
 		logger.Infof("Starting %s", metadata.GetVersionInfo())
+		//利用go和pprof来分析系统性能
 		initializeProfilingService(conf)
+		//注册原子广播服务
 		ab.RegisterAtomicBroadcastServer(grpcServer.Server(), server)
 		logger.Info("Beginning to serve requests")
 		grpcServer.Start()
@@ -143,7 +145,7 @@ func initializeLoggingLevel(conf *config.TopLevel) {
 	flogging.InitFromSpec(conf.General.LogLevel)
 }
 
-// Start the profiling service if enabled.
+// 启动性能分析服务(Go pprof profiling service)
 func initializeProfilingService(conf *config.TopLevel) {
 	if conf.General.Profile.Enabled {
 		go func() {
@@ -260,7 +262,7 @@ func initializeGrpcServer(conf *config.TopLevel, serverConfig comm.ServerConfig)
 		logger.Fatal("Failed to listen:", err)
 	}
 
-	// Create GRPC server - return if an error occurs
+	//创建一个GRPC服务
 	grpcServer, err := comm.NewGRPCServerFromListener(lis, serverConfig)
 	if err != nil {
 		logger.Fatal("Failed to return new GRPC server:", err)
@@ -272,7 +274,7 @@ func initializeGrpcServer(conf *config.TopLevel, serverConfig comm.ServerConfig)
 func initializeLocalMsp(conf *config.TopLevel) {
 	//conf引用的是orderer/common/localconfig/config.go 行号:189 定义了默认值
 	//conf.General.LocalMSPDir = msp
-	//conf.General.BCCSP 从206行看出使用了默认选项bccsp.GetDefaultOpts(),bccsp引用自fabric-analyse/bccsp/factory/opts.go
+	//conf.General.BCCSP 
 	//使用的是SHA256算法
 	//conf.General.LocalMSPID = DEFAULT
 	err := mspmgmt.LoadLocalMsp(conf.General.LocalMSPDir, conf.General.BCCSP, conf.General.LocalMSPID)

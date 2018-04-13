@@ -22,7 +22,7 @@ func init() {
 	logger = flogging.MustGetLogger(pkgLogID)
 }
 
-// Receiver defines a sink for the ordered broadcast messages
+// 接收器,接收广播发送来的消息
 type Receiver interface {
 	// Ordered should be invoked sequentially as messages are ordered
 	// Each batch in `messageBatches` will be wrapped into a block.
