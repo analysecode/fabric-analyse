@@ -30,7 +30,7 @@ type Receiver interface {
 	// is useful for Kafka orderer to determine the `LastOffsetPersisted` of block.
 	Ordered(msg *cb.Envelope) (messageBatches [][]*cb.Envelope, pending bool)
 
-	// Cut returns the current batch and starts a new one
+	// 返回当前区块并且再创建一个新区快
 	Cut() []*cb.Envelope
 }
 
@@ -64,13 +64,17 @@ func NewReceiverImpl(sharedConfigManager channelconfig.Orderer) Receiver {
 //
 // Note that messageBatches can not be greater than 2.
 func (r *receiver) Ordered(msg *cb.Envelope) (messageBatches [][]*cb.Envelope, pending bool) {
+	//获取消息大小
 	messageSizeBytes := messageSizeBytes(msg)
+	//PreferredMaxBytes读取自configtx.yaml配置文件,默认512k
+	//如果消息大于512K,生成新区快
 	if messageSizeBytes > r.sharedConfigManager.BatchSize().PreferredMaxBytes {
 		logger.Debugf("The current message, with %v bytes, is larger than the preferred batch size of %v bytes and will be isolated.", messageSizeBytes, r.sharedConfigManager.BatchSize().PreferredMaxBytes)
 
-		// cut pending batch, if it has any messages
+		// 如果还有未处理的消息,则进行切分
 		if len(r.pendingBatch) > 0 {
-			messageBatch := r.Cut()
+			messageBatch := r.Cut() //返回待处理的消息
+			//则将待处理的消息追加到消息数组中
 			messageBatches = append(messageBatches, messageBatch)
 		}
 
@@ -79,10 +83,11 @@ func (r *receiver) Ordered(msg *cb.Envelope) (messageBatches [][]*cb.Envelope, p
 
 		return
 	}
-
+	//待处理的消息+当前处理的消息 > 设置的最大值
 	messageWillOverflowBatchSizeBytes := r.pendingBatchSizeBytes+messageSizeBytes > r.sharedConfigManager.BatchSize().PreferredMaxBytes
 
 	if messageWillOverflowBatchSizeBytes {
+
 		logger.Debugf("The current message, with %v bytes, will overflow the pending batch of %v bytes.", messageSizeBytes, r.pendingBatchSizeBytes)
 		logger.Debugf("Pending batch would overflow if current message is added, cutting batch now.")
 		messageBatch := r.Cut()
