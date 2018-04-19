@@ -14,7 +14,7 @@ import (
 	cb "github.com/hyperledger/fabric/protos/common"
 )
 
-// Consenter defines the backing ordering mechanism.
+// 共识接口
 type Consenter interface {
 	// HandleChain should create and return a reference to a Chain for the given set of resources.
 	// It will only be invoked for a given chain once per process.  In general, errors will be treated
@@ -25,39 +25,27 @@ type Consenter interface {
 	HandleChain(support ConsenterSupport, metadata *cb.Metadata) (Chain, error)
 }
 
-// Chain defines a way to inject messages for ordering.
-// Note, that in order to allow flexibility in the implementation, it is the responsibility of the implementer
-// to take the ordered messages, send them through the blockcutter.Receiver supplied via HandleChain to cut blocks,
-// and ultimately write the ledger also supplied via HandleChain.  This design allows for two primary flows
-// 1. Messages are ordered into a stream, the stream is cut into blocks, the blocks are committed (solo, kafka)
-// 2. Messages are cut into blocks, the blocks are ordered, then the blocks are committed (sbft)
+// Chain 定义如何为ordering添加消息
+// 标注, 为了更加灵活, 制定者有责任去提取排好序的消息,通过blockcutter来发送它.接收器通过HandleChain来切割区块,
+// 并最终写入到账本中.
+// 这种设计允许两种主流程
+// 1. 消息被排序后添加到数据流, 数据流被切分到区块中, 然后区块最终被提交 (solo, kafka)
+// 2. 消息被切分到区块中, 区块被排序, 接着区块被提交 (sbft)
 type Chain interface {
-	// NOTE: The kafka consenter has not been updated to perform the revalidation
-	// checks conditionally.  For now, Order/Configure are essentially Enqueue as before.
-	// This does not cause data inconsistency, but it wastes cycles and will be required
-	// to properly support the ConfigUpdate concept once introduced
-	// Once this is done, the MsgClassification logic in msgprocessor should return error
-	// for non ConfigUpdate/Normal msg types
+	// 备注: kafka 共识机制已经不再更新去执行验证检查条件.  现在, Order或者配置在之前入队.
+	// 这不会导致数据不一致, 但浪费了周期，并且一旦引入就需要正确支持配置更新
+	//, MSP处理器中的MsgClassification逻辑应该为非配置更新或者正常的msp消息类型
 
-	// Order accepts a message which has been processed at a given configSeq.
-	// If the configSeq advances, it is the responsibility of the consenter
-	// to revalidate and potentially discard the message
-	// The consenter may return an error, indicating the message was not accepted
+	// Order 接受一个已经在给定的configSeq处理过的消息.
+	// 如果 configSeq 推进, 它负责重新验证和丢失消息会返回错误,标记这个消息不被接受
 	Order(env *cb.Envelope, configSeq uint64) error
 
-	// Configure accepts a message which reconfigures the channel and will
-	// trigger an update to the configSeq if committed.  The configuration must have
-	// been triggered by a ConfigUpdate message. If the config sequence advances,
-	// it is the responsibility of the consenter to recompute the resulting config,
-	// discarding the message if the reconfiguration is no longer valid.
-	// The consenter may return an error, indicating the message was not accepted
+	// Configure 接收一个重新配置渠道的消息如果承诺和触发的configseq更新.  这个配置必须是已经被配置更新的消息出发. 
+	// 如果配置序列前进,共识器会负责重新计算得到的配置,
+	// 如果重新配置不再有效，则丢弃该消息.共识器可能会返回一个错误来标记这个消息不被接受
 	Configure(config *cb.Envelope, configSeq uint64) error
 
-	// WaitReady blocks waiting for consenter to be ready for accepting new messages.
-	// This is useful when consenter needs to temporarily block ingress messages so
-	// that in-flight messages can be consumed. It could return error if consenter is
-	// in erroneous states. If this blocking behavior is not desired, consenter could
-	// simply return nil.
+	// WaitReady 区块将会等待共识器做好接收消息的准备.
 	WaitReady() error
 
 	// Errored returns a channel which will close when an error has occurred.
@@ -89,18 +77,18 @@ type ConsenterSupport interface {
 	// Note that either WriteBlock or WriteConfigBlock must be called before invoking this method a second time.
 	CreateNextBlock(messages []*cb.Envelope) *cb.Block
 
-	// WriteBlock commits a block to the ledger.
+	// WriteBlock 提交区块到账本.
 	WriteBlock(block *cb.Block, encodedMetadataValue []byte)
 
-	// WriteConfigBlock commits a block to the ledger, and applies the config update inside.
+	// WriteConfigBlock 提交区块到账本, 并且把配置更新到里面.
 	WriteConfigBlock(block *cb.Block, encodedMetadataValue []byte)
 
-	// Sequence returns the current config squence.
+	// Sequence 返回当前的配置序列.
 	Sequence() uint64
 
-	// ChainID returns the channel ID this support is associated with.
+	// ChainID 返回通道id.
 	ChainID() string
 
-	// Height returns the number of blocks in the chain this channel is associated with.
+	// Height 返回区块高度.
 	Height() uint64
 }
